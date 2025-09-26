@@ -41,13 +41,34 @@ public class GotifyNotificationService : IGotifyNotificationService
         }
         
         _logger.LogInformation("Initialized Gotify notification service with {ServerCount} servers", _configs.Count);
+        
+        // Log which servers each Gotify instance will monitor
+        foreach (var config in _configs)
+        {
+            var configName = !string.IsNullOrEmpty(config.Name) ? config.Name : config.BaseUrl;
+            if (config.MonitorAllServers)
+            {
+                _logger.LogInformation("Gotify server '{GotifyName}' will monitor ALL servers", configName);
+            }
+            else if (config.MonitoredServers.Any())
+            {
+                _logger.LogInformation("Gotify server '{GotifyName}' will monitor servers: {MonitoredServers}", 
+                    configName, string.Join(", ", config.MonitoredServers));
+            }
+            else
+            {
+                _logger.LogWarning("Gotify server '{GotifyName}' has MonitorAllServers=false but no specific servers listed - will not receive notifications", configName);
+            }
+        }
     }
 
     public async Task SendServerDownNotificationAsync(ServerStatus serverStatus, CancellationToken cancellationToken = default)
     {
-        if (!_configs.Any())
+        var applicableConfigs = GetApplicableGotifyConfigs(serverStatus.ServerName);
+        
+        if (!applicableConfigs.Any())
         {
-            _logger.LogDebug("No Gotify servers configured, skipping server down notification for {ServerName}", serverStatus.ServerName);
+            _logger.LogDebug("No Gotify servers configured for server {ServerName}, skipping server down notification", serverStatus.ServerName);
             return;
         }
 
@@ -56,14 +77,16 @@ public class GotifyNotificationService : IGotifyNotificationService
                      $"⏰ Detected at: {serverStatus.LastChecked:yyyy-MM-dd HH:mm:ss} UTC\n" +
                      $"❌ Error: {serverStatus.ErrorMessage ?? "Connection failed"}";
 
-        await SendNotificationToAllServersAsync(title, message, 8, cancellationToken); // High priority for down alerts
+        await SendNotificationToSpecificServersAsync(applicableConfigs, title, message, 8, cancellationToken); // High priority for down alerts
     }
 
     public async Task SendServerUpNotificationAsync(ServerStatus serverStatus, CancellationToken cancellationToken = default)
     {
-        if (!_configs.Any())
+        var applicableConfigs = GetApplicableGotifyConfigs(serverStatus.ServerName);
+        
+        if (!applicableConfigs.Any())
         {
-            _logger.LogDebug("No Gotify servers configured, skipping server up notification for {ServerName}", serverStatus.ServerName);
+            _logger.LogDebug("No Gotify servers configured for server {ServerName}, skipping server up notification", serverStatus.ServerName);
             return;
         }
 
@@ -72,7 +95,7 @@ public class GotifyNotificationService : IGotifyNotificationService
                      $"⏰ Restored at: {serverStatus.LastChecked:yyyy-MM-dd HH:mm:ss} UTC\n" +
                      $"⚡ Response time: {serverStatus.ResponseTime.TotalMilliseconds:F2}ms";
 
-        await SendNotificationToAllServersAsync(title, message, 3, cancellationToken); // Normal priority for up alerts
+        await SendNotificationToSpecificServersAsync(applicableConfigs, title, message, 3, cancellationToken); // Normal priority for up alerts
     }
 
     public async Task SendStatusChangeNotificationAsync(ServerStatusChange statusChange, CancellationToken cancellationToken = default)
@@ -90,6 +113,42 @@ public class GotifyNotificationService : IGotifyNotificationService
         {
             await SendServerUpNotificationAsync(statusChange.CurrentStatus, cancellationToken);
         }
+    }
+
+    private List<GotifyConfiguration> GetApplicableGotifyConfigs(string serverName)
+    {
+        return _configs.Where(config => ShouldNotifyForServer(config, serverName)).ToList();
+    }
+    
+    private bool ShouldNotifyForServer(GotifyConfiguration config, string serverName)
+    {
+        // If MonitorAllServers is true, notify for all servers
+        if (config.MonitorAllServers)
+        {
+            return true;
+        }
+        
+        // If MonitoredServers is empty but MonitorAllServers is false, don't notify
+        if (!config.MonitoredServers.Any())
+        {
+            return false;
+        }
+        
+        // Check if this server is in the monitored servers list (case-insensitive)
+        return config.MonitoredServers.Any(monitoredServer => 
+            string.Equals(monitoredServer.Trim(), serverName.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task SendNotificationToSpecificServersAsync(List<GotifyConfiguration> configs, string title, string message, int priority, CancellationToken cancellationToken = default)
+    {
+        if (!configs.Any())
+        {
+            _logger.LogDebug("No applicable Gotify servers for notification: {Title}", title);
+            return;
+        }
+        
+        var tasks = configs.Select(config => SendNotificationToServerAsync(config, title, message, priority, cancellationToken));
+        await Task.WhenAll(tasks);
     }
 
     private async Task SendNotificationToAllServersAsync(string title, string message, int priority, CancellationToken cancellationToken = default)

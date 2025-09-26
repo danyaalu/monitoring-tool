@@ -29,4 +29,16 @@ public class GotifyConfiguration
     public string ApplicationToken { get; set; } = string.Empty;
     public int Priority { get; set; } = 5;
     public bool Enabled { get; set; } = true;
+    
+    /// <summary>
+    /// List of server names to monitor. If empty, monitors all servers.
+    /// Use exact server names from the Servers configuration.
+    /// </summary>
+    public List<string> MonitoredServers { get; set; } = new();
+    
+    /// <summary>
+    /// If true, monitors all servers (ignores MonitoredServers list).
+    /// If false, only monitors servers listed in MonitoredServers.
+    /// </summary>
+    public bool MonitorAllServers { get; set; } = true;
 }
