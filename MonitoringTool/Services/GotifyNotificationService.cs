@@ -36,7 +36,7 @@ public class GotifyNotificationService : IGotifyNotificationService
         }
 
         var title = $"🔴 Server Down: {serverStatus.ServerName}";
-        var message = $"Server '{serverStatus.ServerName}' ({serverStatus.Host}:{serverStatus.Port}) is DOWN\n\n" +
+        var message = $"Server '{serverStatus.ServerName}' is DOWN\n\n" +
                      $"⏰ Detected at: {serverStatus.LastChecked:yyyy-MM-dd HH:mm:ss} UTC\n" +
                      $"❌ Error: {serverStatus.ErrorMessage ?? "Connection failed"}";
 
