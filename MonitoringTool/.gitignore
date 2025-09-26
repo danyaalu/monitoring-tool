@@ -1,0 +1,32 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Sensitive configuration files
+appsettings.json
+appsettings.*.json
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.dockerignore
+
+# Logs
+*.log
+
+# Publish output
+publish/
