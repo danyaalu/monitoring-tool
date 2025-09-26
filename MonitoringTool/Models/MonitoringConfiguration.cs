@@ -5,7 +5,11 @@ public class MonitoringConfiguration
     public const string SectionName = "Monitoring";
     
     public List<ServerConfiguration> Servers { get; set; } = new();
+    public List<GotifyConfiguration> GotifyServers { get; set; } = new();
+    
+    // Keep backwards compatibility
     public GotifyConfiguration Gotify { get; set; } = new();
+    
     public int CheckIntervalSeconds { get; set; } = 30;
     public int TimeoutSeconds { get; set; } = 30;
 }
@@ -20,6 +24,7 @@ public class ServerConfiguration
 
 public class GotifyConfiguration
 {
+    public string Name { get; set; } = string.Empty;
     public string BaseUrl { get; set; } = string.Empty;
     public string ApplicationToken { get; set; } = string.Empty;
     public int Priority { get; set; } = 5;

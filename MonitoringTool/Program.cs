@@ -28,7 +28,7 @@ builder.Services.AddTransient<IGotifyNotificationService>(serviceProvider =>
     var httpClient = serviceProvider.GetRequiredService<HttpClient>();
     var logger = serviceProvider.GetRequiredService<ILogger<GotifyNotificationService>>();
     var config = builder.Configuration.GetSection(MonitoringConfiguration.SectionName).Get<MonitoringConfiguration>();
-    return new GotifyNotificationService(httpClient, config?.Gotify ?? new GotifyConfiguration(), logger);
+    return new GotifyNotificationService(httpClient, config ?? new MonitoringConfiguration(), logger);
 });
 
 // Register the hosted service
