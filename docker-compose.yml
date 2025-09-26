@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  monitoring-tool:
+    build: .
+    container_name: cardano-monitoring-tool
+    restart: unless-stopped
+    
+    # Mount configuration files from host
+    volumes:
+      - ./config/appsettings.json:/app/appsettings.json:ro
+      - ./config/appsettings.Production.json:/app/appsettings.Production.json:ro
+      # Optional: Mount logs directory if you want persistent logs
+      - ./logs:/app/logs
+    
+    # Environment variables
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DOTNET_ENVIRONMENT=Production
+      # You can override specific configuration values with environment variables
+      # - Monitoring__CheckIntervalSeconds=60
+      # - Monitoring__TimeoutSeconds=30
+    
+    # Network configuration (optional)
+    networks:
+      - monitoring-network
+
+    # Health check (optional)
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  monitoring-network:
+    driver: bridge
+
+# Optional: If you want to persist data or logs
+volumes:
+  monitoring-logs:
